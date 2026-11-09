@@ -186,7 +186,7 @@ table.ev tr.best td { background: var(--safe-bg); }
         <div class="livecount" id="liveCount"></div>
       </div>
       <div class="toggle" role="group" aria-label="Rank by">
-        <button id="byCash" aria-pressed="true">Rank by firm cash</button>
+        <button id="byCash" aria-pressed="true">Rank by firm value</button>
         <button id="byWelfare" class="reveal" aria-pressed="false">Reveal: social welfare</button>
       </div>
     </div>
@@ -222,7 +222,7 @@ const FIREBASE_CONFIG = {
       partner: "Harbor Credit Union patches on the first Sunday of the month. If this goes public on a Tuesday, we're exposed for weeks." },
     { lib: "zstream 3.1", what: "the compression library", slow: ["Pinecrest Schools", "Harbor Credit Union", "Larkspur Pharmacy"],
       story: "A second finding from the same audit programme: zstream decompresses a malformed archive into memory it does not own. Three slow-moving organisations run it on public upload forms.",
-      chair: "Every dollar we spend on other people's patch schedules is a dollar off our number. The class board ranks firms by cash.",
+      chair: "Every dollar we spend on other people's patch schedules is a dollar off our number. The class board ranks firms by value.",
       partner: "Pinecrest Schools has one IT contractor for eleven campuses. We need a few days' warning to do anything." },
     { lib: "tlsbeat 1.0.4", what: "the TLS library", slow: ["Tidewater Clinic", "Pinecrest Schools", "Larkspur Pharmacy", "Copperline Water"],
       story: "The worst one yet: a heartbeat message in tlsbeat leaks server memory, private keys included. Four slow firms terminate encrypted traffic with it, one of them the water utility.",
@@ -261,8 +261,13 @@ const FIREBASE_CONFIG = {
 
   // ---------------- state
   const hot = window.claude && window.claude.hot;
-  let S = { screen: "intro", round: 0, firm: "", money: START, welfare: 0, log: [], revealed: false, saved: false };
+  let S = { screen: "intro", round: 0, firm: "", money: START, bonus: 0, welfare: 0, log: [], revealed: false, saved: false };
   let last = null, mg = null;
+  // Intangibles, converted to dollars when the quarter closes
+  const CREDIT = 2000;     // advisory credit for a published fix (Public or Coordinate)
+  const GOODWILL = 1000;   // per slow firm warned in an embargo that held
+  const EDGE = 2000;       // competitive edge from a withheld flaw, kept only if the secret holds
+  const val = r => r.money + (r.bonus || 0);
   const stage = document.getElementById("stage");
 
   // ---------------- shared class data
@@ -272,13 +277,13 @@ const FIREBASE_CONFIG = {
   function boardRows() {
     const rows = classRows.map(r => ({ ...r, you: r.id === uid }));
     if (S.screen === "final" || S.screen === "reveal") {
-      if (!rows.some(r => r.you)) rows.push({ id: "you-local", firm: S.firm, money: S.money, welfare: S.welfare, you: true });
-      else rows.forEach(r => { if (r.you) { r.money = S.money; r.welfare = S.welfare; r.firm = S.firm; } });
+      if (!rows.some(r => r.you)) rows.push({ id: "you-local", firm: S.firm, money: S.money, bonus: S.bonus, welfare: S.welfare, you: true });
+      else rows.forEach(r => { if (r.you) { r.money = S.money; r.bonus = S.bonus; r.welfare = S.welfare; r.firm = S.firm; } });
     }
     return rows;
   }
   function sortRows(rows, mode) {
-    return rows.slice().sort((a, b) => mode === "welfare" ? (b.welfare - a.welfare || b.money - a.money) : (b.money - a.money || b.welfare - a.welfare));
+    return rows.slice().sort((a, b) => mode === "welfare" ? (b.welfare - a.welfare || val(b) - val(a)) : (val(b) - val(a) || b.welfare - a.welfare));
   }
   // draws a ranked list into ol, animating moves (FLIP) and flashing new arrivals
   function drawRanked(ol, rows, mode, animate) {
@@ -292,8 +297,8 @@ const FIREBASE_CONFIG = {
       const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = r.firm;
       if (r.you) { const t = document.createElement("small"); t.textContent = "YOU"; nm.appendChild(t); }
       const sc = document.createElement("span"); sc.className = "sc";
-      if (mode === "welfare") { sc.textContent = fmt(r.welfare); const s = document.createElement("small"); s.textContent = "cash " + fmt(r.money); sc.appendChild(s); }
-      else sc.textContent = fmt(r.money);
+      if (mode === "welfare") { sc.textContent = fmt(r.welfare); const s = document.createElement("small"); s.textContent = "firm value " + fmt(val(r)); sc.appendChild(s); }
+      else sc.textContent = fmt(val(r));
       li.append(rk, nm, sc); ol.appendChild(li);
     });
     if (animate && !reduce()) ol.querySelectorAll(".row").forEach(li => {
@@ -335,7 +340,7 @@ const FIREBASE_CONFIG = {
           <p class="ticker">09:12 · Your firm's paid audit has found a zero-day in a library the whole city depends on. Three more findings are due this quarter.</p>
           <p>You are the head of security. For each incident, decide how the fix gets out: publish it, coordinate it privately, or keep it to yourself. Everyone in class faces the same four incidents.</p>
         </section>
-        <div class="goal"><b>Your goal:</b> finish the quarter with the most cash. The class leaderboard ranks every firm by firm cash. You start with ${fmt(START)}.</div>
+        <div class="goal"><b>Your goal:</b> finish the quarter with the most valuable firm. The class leaderboard ranks every firm by firm value. You start with ${fmt(START)} in cash.</div>
         <div class="shield"><div><b>Your firm can't be breached.</b> You find each flaw first and patch your own systems straight away. The breaches in this game hit the <b>slow firms</b>: other companies that run the same library and need time to patch. Each breach costs that firm ${fmt(L)}, not you.</div></div>
         <div class="panel stack">
           <label for="firm">Name your firm</label>
@@ -435,7 +440,13 @@ const FIREBASE_CONFIG = {
     const rd = ROUNDS[S.round];
     const o = resolve(k, rd.slow.length, opts || { maintainers: false, leaked: false, warned: [] });
     S.money -= o.cost; S.welfare -= o.cost + o.losses;
-    S.log.push({ k, cost: o.cost, losses: o.losses, n: rd.slow.length });
+    // intangibles earned this round (shown and counted at the end)
+    let credit = 0, goodwill = 0, edge = 0;
+    if (k === "P") credit = CREDIT;
+    if (k === "C") { credit = CREDIT; if (opts && opts.maintainers && !opts.leaked) goodwill = GOODWILL * opts.warned.filter(Boolean).length; }
+    if (k === "W" && !o.leakHit) edge = EDGE;
+    S.bonus = (S.bonus || 0) + credit + goodwill + edge;
+    S.log.push({ k, cost: o.cost, losses: o.losses, n: rd.slow.length, credit, goodwill, edge });
     last = { k, o, opts, rd };
     S.screen = "outcome"; render();
   }
@@ -488,11 +499,19 @@ const FIREBASE_CONFIG = {
 
   function finalScreen(animate) {
     const rows = sortRows(boardRows(), "cash"); const rank = rows.findIndex(r => r.you) + 1;
+    const sum = f => S.log.reduce((a, l) => a + (l[f] || 0), 0);
     stage.innerHTML = `
       <div class="stack">
         <div class="eyebrow">Quarter closed · class leaderboard</div>
-        <h2>You're #${rank} of ${rows.length} on firm cash</h2>
-        <p>${esc(S.firm)} closes the quarter with ${fmt(S.money)}. The board chair is drafting the bonus memo.</p>
+        <h2>You're #${rank} of ${rows.length} on firm value</h2>
+        <p>Your choices also earned ${esc(S.firm)} things that never showed up as cash. The board has priced them in.</p>
+        <div class="panel"><div class="ledger">
+          <span>Cash at quarter close</span><span class="v">${fmt(S.money)}</span>
+          <span>Advisory credit: your name on published fixes (${fmt(CREDIT)} each)</span><span class="v">+${fmt(sum("credit"))}</span>
+          <span>Goodwill: slow firms you warned in an embargo that held (${fmt(GOODWILL)} each)</span><span class="v">+${fmt(sum("goodwill"))}</span>
+          <span>Competitive edge: flaws you kept secret without being found out (${fmt(EDGE)} each)</span><span class="v">+${fmt(sum("edge"))}</span>
+          <span><b>Firm value</b></span><span class="v"><b>${fmt(S.money + S.bonus)}</b></span>
+        </div></div>
         ${boardBlock("endBoard")}
         <div class="panel stack">
           <h3>One more thing</h3>
@@ -515,7 +534,7 @@ const FIREBASE_CONFIG = {
         <div class="ruling stack">
           <div class="eyebrow">Ruling of the library consortium</div>
           <h2>The winner is the firm that left everyone best off</h2>
-          <p>Cash was never the scoring rule. Every firm in the city runs the same libraries, so the consortium ranks firms by <b>social welfare</b>: your own spending plus every breach your disclosure choices left on the slow firms.</p>
+          <p>Firm value was never the scoring rule. Every firm in the city runs the same libraries, so the consortium ranks firms by <b>social welfare</b>: your own spending plus every breach your disclosure choices left on the slow firms.</p>
         </div>
         <h2>You're #${rank} of ${rows.length} on social welfare</h2>
         <div class="panel stack"><div id="endSlot"></div><p class="note" id="endBoardNote"></p></div>
@@ -525,7 +544,7 @@ const FIREBASE_CONFIG = {
           <span><b>Social welfare</b></span><span class="v"><b>${fmt(S.welfare)}</b></span>
           <span class="muted">Your routes</span><span class="v muted">Public ${counts.P} · Coordinate ${counts.C} · Withhold ${counts.W}</span>
         </div></div>
-        <h3>Why the cash leaders fell</h3>
+        <h3>Why the firm-value leaders fell</h3>
         <p>Each round, the cheapest route for your firm was to publish: it cost you nothing. The best route for everyone was to coordinate: it cost the finder $5,000 but cut each slow firm's expected loss from $50,000 to $10,000. The finder pays for coordination while the slow firms get the benefit, so a firm judged on its own cash never coordinates. That gap between the <b>equilibrium</b> (publish) and the <b>social optimum</b> (coordinate) is a <b>negative externality</b>.</p>
         <div class="scroll"><table class="ev">
           <thead><tr><th>Route</th><th>Cost to finder</th><th>Expected loss, each slow firm</th><th>Total with 3 slow firms</th></tr></thead>
@@ -535,14 +554,15 @@ const FIREBASE_CONFIG = {
             <tr><td>Withhold</td><td class="n">$3,000</td><td class="n">$40,000</td><td class="n">$123,000</td></tr>
           </tbody></table></div>
         <p class="muted">Across these four incidents, always coordinating perfectly has an expected welfare of ${fmt(-(5000 * ROUNDS.length + 10000 * totalSlow))}; always publishing, ${fmt(-50000 * totalSlow)}. Outcomes are random draws from those probabilities, so luck moves individual results.</p>
-        <p>Because the finder will not coordinate on its own, coordination has to be required up front, for example in the audit agreement that paid for the review.</p>
+        <p>The intangibles narrow the gap but don't close it. With three slow firms, publishing is worth about ${fmt(CREDIT)} to your firm on average (advisory credit, no cost), coordinating about ${fmt(-5000 + CREDIT + 3 * GOODWILL)} (credit and goodwill minus the $5,000 cost) and withholding about ${fmt(-3000 + 0.7 * EDGE)}. So even counting reputation, publishing still pays the finder most, and the equilibrium stays away from the social optimum.</p>
+        <p>Coordination becomes the finder's own best choice only once its rewards exceed its cost. That's why it has to be required or rewarded up front, for example in the audit agreement that paid for the review.</p>
         <div class="row-actions"><button class="btn" id="again">Play again</button><a class="btn alt" href="#live" style="text-decoration:none">Open the live leaderboard</a></div>
       </div>`;
     const slot = document.getElementById("endSlot");
     if (keep) { slot.replaceWith(keep); } else { const ol = document.createElement("ol"); ol.className = "rows"; ol.id = "endBoard"; slot.replaceWith(ol); }
     fillEndBoard("welfare", !!keep);
     document.getElementById("again").onclick = () => {
-      S = { screen: "intro", round: 0, firm: S.firm, money: START, welfare: 0, log: [], revealed: false, saved: false };
+      S = { screen: "intro", round: 0, firm: S.firm, money: START, bonus: 0, welfare: 0, log: [], revealed: false, saved: false };
       last = null; render(); scrollTo(0, 0);
     };
   }
@@ -553,7 +573,7 @@ const FIREBASE_CONFIG = {
     const byW = liveMode === "welfare";
     document.getElementById("byCash").setAttribute("aria-pressed", String(!byW));
     document.getElementById("byWelfare").setAttribute("aria-pressed", String(byW));
-    document.getElementById("liveTitle").textContent = byW ? "Ranked by social welfare" : "Ranked by firm cash";
+    document.getElementById("liveTitle").textContent = byW ? "Ranked by social welfare" : "Ranked by firm value";
     const rows = classRows.map(r => ({ ...r, you: r.id === uid }));
     document.getElementById("liveCount").textContent = `${rows.length} firm${rows.length === 1 ? "" : "s"} finished`;
     const note = document.getElementById("liveNote");
@@ -562,7 +582,7 @@ const FIREBASE_CONFIG = {
     drawRanked(ol, rows, liveMode, animate);
     note.textContent = byW ? "Social welfare = the firm's own spending plus every breach its choices left on the slow firms." : "Keep the welfare reveal for after everyone has finished.";
     const recent = classRows.slice().sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 3);
-    document.getElementById("feed").textContent = recent.length ? "Latest: " + recent.map(r => `${r.firm} (${fmt(r.money)})`).join(" · ") : "";
+    document.getElementById("feed").textContent = recent.length ? "Latest: " + recent.map(r => `${r.firm} (${fmt(val(r))})`).join(" · ") : "";
   }
   document.getElementById("byCash").onclick = () => { liveMode = "cash"; renderLive(true); };
   document.getElementById("byWelfare").onclick = () => { liveMode = "welfare"; renderLive(true); };
@@ -591,7 +611,7 @@ const FIREBASE_CONFIG = {
   async function saveRun() {
     if (!db || !uid || S.saved === true) { if (!uid && db) { S.saved = "no"; fillEndBoard("cash"); } return; }
     try {
-      await fsdk.setDoc(fsdk.doc(db, "scores", uid), { firm: S.firm.slice(0, 24), money: S.money, welfare: S.welfare,
+      await fsdk.setDoc(fsdk.doc(db, "scores", uid), { firm: S.firm.slice(0, 24), money: S.money, bonus: S.bonus, welfare: S.welfare,
         routes: S.log.map(l => l.k).join(""), at: new Date().toISOString() });
       S.saved = true;
     } catch (e) { S.saved = "no"; }
@@ -616,7 +636,7 @@ const FIREBASE_CONFIG = {
     fsdk.onSnapshot(fsdk.query(fsdk.collection(db, "scores"), fsdk.limit(500)), { includeMetadataChanges: false }, snap => {
       classRows = snap.docs.map(doc => { const x = doc.data() || {}; return {
         id: doc.id, firm: String(x.firm || "Unnamed firm").slice(0, 24), at: String(x.at || ""),
-        money: Number.isFinite(+x.money) ? +x.money : 0, welfare: Number.isFinite(+x.welfare) ? +x.welfare : 0 }; });
+        money: Number.isFinite(+x.money) ? +x.money : 0, bonus: Number.isFinite(+x.bonus) ? +x.bonus : 0, welfare: Number.isFinite(+x.welfare) ? +x.welfare : 0 }; });
       freshIds = new Set();
       if (!firstSnap) classRows.forEach(r => { if (!seen.has(r.id) || snap.docChanges().some(ch => ch.doc.id === r.id && ch.type !== "removed")) freshIds.add(r.id); });
       classRows.forEach(r => seen.add(r.id)); firstSnap = false;

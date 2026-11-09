@@ -7,7 +7,10 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if request.auth != null
         && request.auth.uid == playerId
-        && request.resource.data.keys().hasOnly(['firm', 'money', 'welfare', 'routes', 'at'])
+        && request.resource.data.keys().hasOnly(['firm', 'money', 'bonus', 'welfare', 'routes', 'at'])
+        && (!('bonus' in request.resource.data)
+            || (request.resource.data.bonus is number
+                && request.resource.data.bonus >= 0 && request.resource.data.bonus <= 20000))
         && request.resource.data.firm is string
         && request.resource.data.firm.size() > 0
         && request.resource.data.firm.size() <= 24
