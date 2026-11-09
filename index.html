@@ -88,6 +88,11 @@ input[type=text] { font: inherit; width: 100%; max-width: 360px; padding: 10px 1
 .choice .name { font-family: var(--f-display); font-weight: 800; font-size: 18px; text-transform: uppercase; }
 .choice .cost { font-family: var(--f-mono); font-size: 13px; color: var(--accent-ink); background: var(--accent-bg); padding: 2px 8px; border-radius: 3px; align-self: flex-start; }
 .choice p { font-size: 14px; color: var(--muted); }
+.choice p b { font-family: var(--f-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.choice p.pro b { color: var(--safe); }
+.choice p.con b { color: var(--danger); }
+.shield { display: flex; gap: 10px; align-items: flex-start; background: var(--safe-bg); color: var(--ink); border-radius: 6px; padding: 12px 14px; font-size: 14px; }
+.shield b { color: var(--safe); }
 
 .ledger { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; font-size: 14px; }
 .ledger .v { font-family: var(--f-mono); text-align: right; font-variant-numeric: tabular-nums; }
@@ -229,9 +234,15 @@ const FIREBASE_CONFIG = {
       partner: "We read the advisories. We just can't move as fast as you can." }
   ];
   const ROUTE = {
-    P: { name: "Public", cost: "Costs us $0", text: "Commit the fix upstream now. Fast and free, but the commit shows attackers where the hole is." },
-    C: { name: "Coordinate", cost: "Costs us $5,000 + a minigame", text: "Privately warn the maintainers and the slow firms first, then publish together." },
-    W: { name: "Withhold", cost: "Costs us ~$3,000 (30% chance of a $10,000 hit)", text: "Fix only our own copy and say nothing. The flaw stays a zero-day for everyone else." }
+    P: { name: "Public", cost: "Costs us $0", text: "Commit the fix upstream now.",
+         up: "Free and fast, and your firm gets credit on the advisory.",
+         down: "The commit shows attackers exactly where the hole is, before the slow firms can patch." },
+    C: { name: "Coordinate", cost: "Costs us $5,000 + a minigame", text: "Privately warn the maintainers and the slow firms first, then publish together.",
+         up: "The slow firms get time to patch before attackers learn of the flaw, and they owe you a favour.",
+         down: "It costs your firm time and money, and you have to run the embargo yourself." },
+    W: { name: "Withhold", cost: "Costs us ~$3,000 (30% chance of a $10,000 hit)", text: "Fix only our own copy and say nothing. The flaw stays a zero-day.",
+         up: "Rivals stay exposed while you're safe, and nobody learns your library was flawed.",
+         down: "The slow firms never get a fix, so if an attacker finds the flaw himself they can't defend. If your secrecy comes out, your reputation takes the hit." }
   };
 
   // Stage 2 resolution. Coordinate opts: {warned:[bool], maintainers:bool, leaked:bool}
@@ -299,6 +310,7 @@ const FIREBASE_CONFIG = {
     p.innerHTML = `
       <div><div class="lbl">Your firm</div><h3>${esc(S.firm || "Not named yet")}</h3></div>
       <div><div class="lbl">Firm cash</div><div class="big">${fmt(S.money)}</div></div>
+      <div><div class="lbl">Your systems</div><div style="color:var(--safe);font-weight:600">Patched · can't be breached</div></div>
       <div><div class="lbl">Incidents</div><div class="trail">${trail}</div></div>
       ${S.revealed ? `<div><div class="lbl">Social welfare</div><div class="big" style="font-size:28px">${fmt(S.welfare)}</div></div>`
         : `<p class="note">When you close the quarter, your result posts to the class leaderboard.</p>`}`;
@@ -323,7 +335,8 @@ const FIREBASE_CONFIG = {
           <p class="ticker">09:12 · Your firm's paid audit has found a zero-day in a library the whole city depends on. Three more findings are due this quarter.</p>
           <p>You are the head of security. For each incident, decide how the fix gets out: publish it, coordinate it privately, or keep it to yourself. Everyone in class faces the same four incidents.</p>
         </section>
-        <div class="goal"><b>Your goal:</b> finish the quarter with the most cash. The class leaderboard ranks every firm by firm cash. You start with ${fmt(START)}; a breach costs a firm ${fmt(L)}.</div>
+        <div class="goal"><b>Your goal:</b> finish the quarter with the most cash. The class leaderboard ranks every firm by firm cash. You start with ${fmt(START)}.</div>
+        <div class="shield"><div><b>Your firm can't be breached.</b> You find each flaw first and patch your own systems straight away. The breaches in this game hit the <b>slow firms</b>: other companies that run the same library and need time to patch. Each breach costs that firm ${fmt(L)}, not you.</div></div>
         <div class="panel stack">
           <label for="firm">Name your firm</label>
           <input type="text" id="firm" maxlength="24" placeholder="e.g. Lumen Systems" autocomplete="off">
@@ -347,10 +360,11 @@ const FIREBASE_CONFIG = {
         <p>${esc(rd.story)}</p>
         <div class="quote chair"><div class="who">Board chair, ${esc(S.firm)}</div><p>“${esc(rd.chair)}”</p></div>
         <div class="quote partner"><div class="who">Slow firm on the same library</div><p>“${esc(rd.partner)}”</p></div>
-        <div><h3 style="margin-bottom:8px">Slow firms running ${esc(rd.lib.split(" ")[0])}</h3>
+        <div class="shield"><div><b>${esc(S.firm)} is already patched.</b> None of these routes can breach you. Your choice decides how exposed the slow firms below are.</div></div>
+        <div><h3 style="margin-bottom:8px">Slow firms running ${esc(rd.lib.split(" ")[0])} (other companies)</h3>
           <div class="slow">${rd.slow.map(s => `<span class="chip">${esc(s)}</span>`).join("")}</div></div>
         <div class="choices">${["P", "C", "W"].map(k => `
-          <button class="choice" data-k="${k}"><span class="name">${ROUTE[k].name}</span><span class="cost">${ROUTE[k].cost}</span><p>${ROUTE[k].text}</p></button>`).join("")}</div>
+          <button class="choice" data-k="${k}"><span class="name">${ROUTE[k].name}</span><span class="cost">${ROUTE[k].cost}</span><p>${ROUTE[k].text}</p><p class="pro"><b>Upside:</b> ${ROUTE[k].up}</p><p class="con"><b>Downside:</b> ${ROUTE[k].down}</p></button>`).join("")}</div>
       </div>`;
     stage.querySelectorAll(".choice").forEach(b => b.onclick = () => { const k = b.dataset.k; if (k === "C") miniIntro(); else commit(k, null); });
   }
@@ -442,7 +456,7 @@ const FIREBASE_CONFIG = {
         <div class="eyebrow">Incident ${S.round + 1} result · ${ROUTE[k].name}</div>
         <h2>${headline}</h2>
         <p>${detail}</p>
-        <div><h3 style="margin-bottom:8px">Slow firms</h3><div class="slow">${rd.slow.map((s, i) => `<span class="chip ${o.hits[i] ? "hit" : "ok"}">${esc(s)} · ${o.hits[i] ? "breached" : "safe"}</span>`).join("")}</div></div>
+        <div><h3 style="margin-bottom:8px">Who was breached</h3><div class="slow"><span class="chip ok">${esc(S.firm)} (you) · safe, patched first</span>${rd.slow.map((s, i) => `<span class="chip ${o.hits[i] ? "hit" : "ok"}">${esc(s)} · ${o.hits[i] ? "breached" : "safe"}</span>`).join("")}</div></div>
         <div class="panel"><div class="ledger">
           <span>${esc(S.firm)} spent this round</span><span class="v ${o.cost ? "neg" : ""}">${fmt(-o.cost)}</span>
           <span>${esc(S.firm)} cash</span><span class="v">${fmt(S.money)}</span>
