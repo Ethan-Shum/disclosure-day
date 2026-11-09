@@ -88,6 +88,7 @@ input[type=text] { font: inherit; width: 100%; max-width: 360px; padding: 10px 1
 .choice .name { font-family: var(--f-display); font-weight: 800; font-size: 18px; text-transform: uppercase; }
 .choice .cost { font-family: var(--f-mono); font-size: 13px; color: var(--accent-ink); background: var(--accent-bg); padding: 2px 8px; border-radius: 3px; align-self: flex-start; }
 .choice p { font-size: 14px; color: var(--muted); }
+.choice .cost.gain { color: var(--safe); background: var(--safe-bg); margin-top: -2px; }
 .choice p b { font-family: var(--f-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
 .choice p.pro b { color: var(--safe); }
 .choice p.con b { color: var(--danger); }
@@ -234,13 +235,13 @@ const FIREBASE_CONFIG = {
       partner: "We read the advisories. We just can't move as fast as you can." }
   ];
   const ROUTE = {
-    P: { name: "Public", cost: "Costs us $0", text: "Commit the fix upstream now.",
+    P: { name: "Public", cost: "Costs us $0", gain: "Earns $2,000 advisory credit", text: "Commit the fix upstream now.",
          up: "Free and fast, and your firm gets credit on the advisory.",
          down: "The commit shows attackers exactly where the hole is, before the slow firms can patch." },
-    C: { name: "Coordinate", cost: "Costs us $5,000 + a minigame", text: "Privately warn the maintainers and the slow firms first, then publish together.",
+    C: { name: "Coordinate", cost: "Costs us $5,000 + a minigame", gain: "Earns $2,000 advisory credit + $1,000 goodwill per slow firm warned", text: "Privately warn the maintainers and the slow firms first, then publish together.",
          up: "The slow firms get time to patch before attackers learn of the flaw, and they owe you a favour.",
          down: "It costs your firm time and money, and you have to run the embargo yourself." },
-    W: { name: "Withhold", cost: "Costs us $0, or $10,000 if we're found out", text: "Fix only our own copy and say nothing. The flaw stays a zero-day.",
+    W: { name: "Withhold", cost: "Costs us $0, or $10,000 if we're found out", gain: "Earns $2,000 competitive edge if we're not found out", text: "Fix only our own copy and say nothing. The flaw stays a zero-day.",
          up: "Rivals stay exposed while you're safe, and nobody learns your library was flawed.",
          down: "The slow firms never get a fix, so if an attacker finds the flaw himself they can't defend. If your secrecy comes out, your reputation takes the hit." }
   };
@@ -369,7 +370,7 @@ const FIREBASE_CONFIG = {
         <div><h3 style="margin-bottom:8px">Slow firms running ${esc(rd.lib.split(" ")[0])} (other companies)</h3>
           <div class="slow">${rd.slow.map(s => `<span class="chip">${esc(s)}</span>`).join("")}</div></div>
         <div class="choices">${["P", "C", "W"].map(k => `
-          <button class="choice" data-k="${k}"><span class="name">${ROUTE[k].name}</span><span class="cost">${ROUTE[k].cost}</span><p>${ROUTE[k].text}</p><p class="pro"><b>Upside:</b> ${ROUTE[k].up}</p><p class="con"><b>Downside:</b> ${ROUTE[k].down}</p></button>`).join("")}</div>
+          <button class="choice" data-k="${k}"><span class="name">${ROUTE[k].name}</span><span class="cost">${ROUTE[k].cost}</span><span class="cost gain">${ROUTE[k].gain}</span><p>${ROUTE[k].text}</p><p class="pro"><b>Upside:</b> ${ROUTE[k].up}</p><p class="con"><b>Downside:</b> ${ROUTE[k].down}</p></button>`).join("")}</div>
       </div>`;
     stage.querySelectorAll(".choice").forEach(b => b.onclick = () => { const k = b.dataset.k; if (k === "C") miniIntro(); else commit(k, null); });
   }
@@ -504,7 +505,7 @@ const FIREBASE_CONFIG = {
       <div class="stack">
         <div class="eyebrow">Quarter closed · class leaderboard</div>
         <h2>You're #${rank} of ${rows.length} on firm value</h2>
-        <p>Your choices also earned ${esc(S.firm)} things that never showed up as cash. The board has priced them in.</p>
+        <p>Here's what your choices earned ${esc(S.firm)} on top of its cash. Firm value adds them together.</p>
         <div class="panel"><div class="ledger">
           <span>Cash at quarter close</span><span class="v">${fmt(S.money)}</span>
           <span>Advisory credit: your name on published fixes (${fmt(CREDIT)} each)</span><span class="v">+${fmt(sum("credit"))}</span>
