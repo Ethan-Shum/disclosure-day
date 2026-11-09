@@ -240,7 +240,7 @@ const FIREBASE_CONFIG = {
     C: { name: "Coordinate", cost: "Costs us $5,000 + a minigame", text: "Privately warn the maintainers and the slow firms first, then publish together.",
          up: "The slow firms get time to patch before attackers learn of the flaw, and they owe you a favour.",
          down: "It costs your firm time and money, and you have to run the embargo yourself." },
-    W: { name: "Withhold", cost: "Costs us ~$3,000", text: "Fix only our own copy and say nothing. The flaw stays a zero-day.",
+    W: { name: "Withhold", cost: "Costs us $0, or $10,000 if we're found out", text: "Fix only our own copy and say nothing. The flaw stays a zero-day.",
          up: "Rivals stay exposed while you're safe, and nobody learns your library was flawed.",
          down: "The slow firms never get a fix, so if an attacker finds the flaw himself they can't defend. If your secrecy comes out, your reputation takes the hit." }
   };
@@ -460,7 +460,7 @@ const FIREBASE_CONFIG = {
       else if (!opts.maintainers) { headline = "Embargo failed"; detail = "The maintainers never got the warning, so the fix shipped without a coordinated date. Warned firms had nothing to apply in time."; }
       else { const w = opts.warned.filter(Boolean).length; headline = "Coordinated release"; detail = `You warned the maintainers and ${w} of ${rd.slow.length} slow firms before publication. Warned firms had the patch staged when the advisory went out.`; }
     }
-    if (k === "W") { headline = "Kept quiet"; detail = (o.found ? "An attacker found the same flaw on his own three weeks later. Nobody else had a fix." : "So far, nobody else has found it.") + (o.leakHit ? " A former auditor talked: the press says you sat on a known flaw." : ""); }
+    if (k === "W") { headline = "Kept quiet"; detail = (o.found ? "An attacker found the same flaw on his own three weeks later. Nobody else had a fix." : "So far, nobody else has found it.") + (o.leakHit ? " You were found out: a former auditor told the press you sat on a known flaw, costing your firm $10,000 in reputational and legal damage." : " Your secret held, so withholding cost your firm nothing this time."); }
     const chair = o.cost === 0 ? "Good. Our number is holding up. Their breaches are their problem." : "That cost us. Watch the number.";
     stage.innerHTML = `
       <div class="stack">
@@ -551,7 +551,7 @@ const FIREBASE_CONFIG = {
           <tbody>
             <tr><td>Public</td><td class="n">$0</td><td class="n">$50,000</td><td class="n">$150,000</td></tr>
             <tr class="best"><td>Coordinate</td><td class="n">$5,000</td><td class="n">$10,000</td><td class="n">$35,000</td></tr>
-            <tr><td>Withhold</td><td class="n">$3,000</td><td class="n">$40,000</td><td class="n">$123,000</td></tr>
+            <tr><td>Withhold</td><td class="n">$3,000 avg ($0, or $10,000 if found out)</td><td class="n">$40,000</td><td class="n">$123,000</td></tr>
           </tbody></table></div>
         <p class="muted">Across these four incidents, always coordinating perfectly has an expected welfare of ${fmt(-(5000 * ROUNDS.length + 10000 * totalSlow))}; always publishing, ${fmt(-50000 * totalSlow)}. Outcomes are random draws from those probabilities, so luck moves individual results.</p>
         <p>The intangibles narrow the gap but don't close it. With three slow firms, publishing is worth about ${fmt(CREDIT)} to your firm on average (advisory credit, no cost), coordinating about ${fmt(-5000 + CREDIT + 3 * GOODWILL)} (credit and goodwill minus the $5,000 cost) and withholding about ${fmt(-3000 + 0.7 * EDGE)}. So even counting reputation, publishing still pays the finder most, and the equilibrium stays away from the social optimum.</p>
