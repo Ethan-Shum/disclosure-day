@@ -235,13 +235,13 @@ const FIREBASE_CONFIG = {
       partner: "We read the advisories. We just can't move as fast as you can." }
   ];
   const ROUTE = {
-    P: { name: "Public", cost: "Costs us $0", gain: "Earns $2,000 advisory credit", text: "Commit the fix upstream now.",
+    P: { name: "Public", cost: "Costs us $0", gain: "Gains: advisory credit, your name on the fix", text: "Commit the fix upstream now.",
          up: "Free and fast, and your firm gets credit on the advisory.",
          down: "The commit shows attackers exactly where the hole is, before the slow firms can patch." },
-    C: { name: "Coordinate", cost: "Costs us $5,000 + a minigame", gain: "Earns $2,000 advisory credit + $1,000 goodwill per slow firm warned", text: "Privately warn the maintainers and the slow firms first, then publish together.",
+    C: { name: "Coordinate", cost: "Costs us $5,000 + a minigame", gain: "Gains: advisory credit, plus goodwill from each slow firm you warn", text: "Privately warn the maintainers and the slow firms first, then publish together.",
          up: "The slow firms get time to patch before attackers learn of the flaw, and they owe you a favour.",
          down: "It costs your firm time and money, and you have to run the embargo yourself." },
-    W: { name: "Withhold", cost: "Costs us $0, or $10,000 if we're found out", gain: "Earns $2,000 competitive edge if we're not found out", text: "Fix only our own copy and say nothing. The flaw stays a zero-day.",
+    W: { name: "Withhold", cost: "Costs us $0, or $10,000 if we're found out", gain: "Gains: a competitive edge over rivals, if we're not found out", text: "Fix only our own copy and say nothing. The flaw stays a zero-day.",
          up: "Rivals stay exposed while you're safe, and nobody learns your library was flawed.",
          down: "The slow firms never get a fix, so if an attacker finds the flaw himself they can't defend. If your secrecy comes out, your reputation takes the hit." }
   };
@@ -505,7 +505,7 @@ const FIREBASE_CONFIG = {
       <div class="stack">
         <div class="eyebrow">Quarter closed · class leaderboard</div>
         <h2>You're #${rank} of ${rows.length} on firm value</h2>
-        <p>Here's what your choices earned ${esc(S.firm)} on top of its cash. Firm value adds them together.</p>
+        <p>Your choices also earned ${esc(S.firm)} credit, goodwill and an edge over rivals. Now the board puts a price on them: firm value is your cash plus these.</p>
         <div class="panel"><div class="ledger">
           <span>Cash at quarter close</span><span class="v">${fmt(S.money)}</span>
           <span>Advisory credit: your name on published fixes (${fmt(CREDIT)} each)</span><span class="v">+${fmt(sum("credit"))}</span>
