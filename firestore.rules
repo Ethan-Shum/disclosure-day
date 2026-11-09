@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Class leaderboard: anyone can read; each player (anonymous sign-in) writes only their own row,
+    // and only with values the game can actually produce.
+    match /scores/{playerId} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+        && request.auth.uid == playerId
+        && request.resource.data.keys().hasOnly(['firm', 'money', 'welfare', 'routes', 'at'])
+        && request.resource.data.firm is string
+        && request.resource.data.firm.size() > 0
+        && request.resource.data.firm.size() <= 24
+        && request.resource.data.money is number
+        && request.resource.data.money >= 160 && request.resource.data.money <= 200
+        && request.resource.data.welfare is number
+        && request.resource.data.welfare >= -1240 && request.resource.data.welfare <= 0
+        && request.resource.data.routes is string
+        && request.resource.data.routes.size() <= 4
+        && request.resource.data.at is string;
+      allow delete: if false;
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

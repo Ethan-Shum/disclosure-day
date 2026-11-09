@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Disclosure Day</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: an incident-room console. The story runs in the main column, your firm's ledger sits beside it; a separate Live tab is a projector-sized class leaderboard. */
+:root {
+  --paper: #edf1f6; --card: #ffffff; --ink: #16213a; --muted: #56627a; --line: #d2d9e4;
+  --accent: #c9711c; --accent-bg: #fbeedd; --accent-ink: #7a3f00;
+  --safe: #1d7564; --safe-bg: #e1f2ec; --danger: #b8342a; --danger-bg: #fbe6e3;
+  --ink-soft: #2b3a5c; --focus: #2f6fd6;
+  --f-display: "Archivo", "Arial Narrow", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+  --f-mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0e1524; --card: #162036; --ink: #e8edf6; --muted: #9ba7bf; --line: #2a3654;
+  --accent: #f0a24a; --accent-bg: #3a2914; --accent-ink: #ffd6a5;
+  --safe: #4cc4a9; --safe-bg: #12302a; --danger: #ff7d6e; --danger-bg: #3b1d21;
+  --ink-soft: #c8d2e6; --focus: #7aa8ff; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #0e1524; --card: #162036; --ink: #e8edf6; --muted: #9ba7bf; --line: #2a3654;
+  --accent: #f0a24a; --accent-bg: #3a2914; --accent-ink: #ffd6a5;
+  --safe: #4cc4a9; --safe-bg: #12302a; --danger: #ff7d6e; --danger-bg: #3b1d21;
+  --ink-soft: #c8d2e6; --focus: #7aa8ff; color-scheme: dark }
+
+* { box-sizing: border-box; }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+[hidden] { display: none !important; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 2px solid var(--ink); }
+.brand { font-family: var(--f-display); font-weight: 900; font-size: 22px; letter-spacing: .02em; text-transform: uppercase; }
+.brand span { color: var(--accent); }
+.nav { display: flex; gap: 4px; }
+.nav a { font-family: var(--f-mono); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; text-decoration: none; color: var(--muted); padding: 6px 12px; border-radius: 3px; border: 1px solid var(--line); }
+.nav a[aria-current="page"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.nav a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.meta { font-family: var(--f-mono); font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; margin-top: 22px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.stage { min-width: 0; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.1; }
+h1 { font-size: clamp(30px, 9vw, 76px); overflow-wrap: anywhere; font-weight: 900; letter-spacing: -.01em; text-transform: uppercase; }
+h2 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 800; }
+h3 { font-size: 17px; font-weight: 700; }
+p { margin: 0; max-width: 66ch; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-ink); }
+.stack { display: flex; flex-direction: column; gap: 16px; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 20px; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+button { font: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.btn { background: var(--ink); color: var(--paper); border: 0; border-radius: 4px; padding: 12px 20px; font-family: var(--f-display); font-weight: 700; letter-spacing: .03em; text-transform: uppercase; font-size: 14px; }
+.btn:hover { background: var(--ink-soft); }
+.btn.alt { background: transparent; color: var(--ink); border: 2px solid var(--ink); }
+label { font-weight: 600; font-size: 14px; }
+input[type=text] { font: inherit; width: 100%; max-width: 360px; padding: 10px 12px; border: 2px solid var(--line); border-radius: 4px; background: var(--card); color: var(--ink); }
+
+.hero { display: flex; flex-direction: column; gap: 14px; padding-block: 8px 4px; }
+.hero h1 span { color: var(--accent); display: block; }
+.ticker { font-family: var(--f-mono); font-size: 13px; color: var(--muted); border-left: 3px solid var(--accent); padding-left: 12px; }
+.goal { background: var(--accent-bg); color: var(--accent-ink); border-radius: 6px; padding: 14px 16px; }
+.goal b { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .04em; }
+
+.scene-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline; }
+.lib { font-family: var(--f-mono); background: var(--ink); color: var(--paper); padding: 2px 8px; border-radius: 3px; font-size: 13px; }
+.quote { border-left: 3px solid var(--line); padding: 4px 0 4px 14px; }
+.quote .who { font-family: var(--f-mono); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.quote.chair { border-color: var(--accent); }
+.quote.partner { border-color: var(--danger); }
+.slow { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); }
+.chip.hit { background: var(--danger-bg); color: var(--danger); border-color: transparent; font-weight: 600; }
+.chip.ok { background: var(--safe-bg); color: var(--safe); border-color: transparent; font-weight: 600; }
+.choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 640px) { .choices { grid-template-columns: minmax(0, 1fr); } }
+.choice { text-align: left; background: var(--card); color: var(--ink); border: 2px solid var(--line); border-radius: 6px; padding: 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.choice:hover { border-color: var(--ink); }
+.choice .name { font-family: var(--f-display); font-weight: 800; font-size: 18px; text-transform: uppercase; }
+.choice .cost { font-family: var(--f-mono); font-size: 13px; color: var(--accent-ink); background: var(--accent-bg); padding: 2px 8px; border-radius: 3px; align-self: flex-start; }
+.choice p { font-size: 14px; color: var(--muted); }
+
+.ledger { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; font-size: 14px; }
+.ledger .v { font-family: var(--f-mono); text-align: right; font-variant-numeric: tabular-nums; }
+.neg { color: var(--danger); }
+
+.mg-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.timer { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+.timer i { display: block; height: 100%; background: var(--accent); width: 100%; transform-origin: left; }
+.lines { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.line { min-height: 92px; border-radius: 6px; border: 2px dashed var(--line); background: var(--card); color: var(--muted); padding: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; text-align: left; }
+.line .st { font-family: var(--f-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.line .nm { font-weight: 600; color: var(--ink); font-size: 14px; }
+.line.on { border-style: solid; border-color: var(--accent); background: var(--accent-bg); color: var(--accent-ink); animation: pulse .7s ease-in-out infinite alternate; }
+.line.done { border-style: solid; border-color: var(--safe); background: var(--safe-bg); color: var(--safe); animation: none; }
+.line.decoy { border-style: solid; border-color: var(--danger); color: var(--danger); }
+.line.miss { animation: shake .25s; }
+@keyframes pulse { from { box-shadow: 0 0 0 0 var(--accent-bg); } to { box-shadow: 0 0 0 6px var(--accent-bg); } }
+@keyframes shake { 0%,100% { transform: translateX(0); } 33% { transform: translateX(-4px); } 66% { transform: translateX(4px); } }
+
+/* your firm panel */
+.firm { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); display: flex; flex-direction: column; gap: 14px; }
+@media (max-width: 860px) { .firm { position: static; } }
+.firm .big { font-family: var(--f-display); font-weight: 900; font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
+.firm .lbl { font-family: var(--f-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.trail { display: flex; gap: 6px; }
+.trail span { flex: 1; height: 28px; border-radius: 3px; border: 1px dashed var(--line); display: grid; place-items: center; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.trail span.d { border-style: solid; border-color: var(--ink); color: var(--ink); }
+
+/* ranked boards */
+.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.row { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 4px; font-size: 14px; background: var(--paper); }
+.row .rk { font-family: var(--f-mono); color: var(--muted); font-size: 12px; }
+.row .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .nm small { font-family: var(--f-mono); font-size: 10px; margin-left: 6px; letter-spacing: .05em; }
+.row .sc { font-family: var(--f-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.row .sc small { display: block; font-size: 11px; color: var(--muted); }
+.row.you { background: var(--accent-bg); color: var(--accent-ink); font-weight: 600; }
+.row.you .rk, .row.you small { color: var(--accent-ink); }
+.row.new { animation: arrive 2.4s ease-out; }
+@keyframes arrive { 0% { background: var(--safe-bg); box-shadow: inset 4px 0 0 var(--safe); } 70% { background: var(--safe-bg); box-shadow: inset 4px 0 0 var(--safe); } 100% { box-shadow: inset 4px 0 0 transparent; } }
+.note { font-size: 13px; color: var(--muted); }
+
+/* live tab */
+.live { margin-top: 22px; display: flex; flex-direction: column; gap: 18px; }
+.live-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.live-head h1 { font-size: clamp(34px, 5.5vw, 60px); }
+.toggle { display: flex; gap: 6px; flex-wrap: wrap; }
+.toggle button { background: transparent; border: 2px solid var(--ink); color: var(--ink); border-radius: 4px; padding: 8px 14px; font-family: var(--f-display); font-weight: 700; text-transform: uppercase; font-size: 13px; letter-spacing: .03em; }
+.toggle button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.toggle button.reveal[aria-pressed="true"] { background: var(--safe); border-color: var(--safe); color: var(--paper); }
+.live .rows .row { font-size: clamp(15px, 1.8vw, 20px); padding: 12px 14px; }
+.live .rows .row .rk { font-size: clamp(13px, 1.4vw, 16px); }
+.livecount { font-family: var(--f-mono); font-size: 13px; color: var(--muted); }
+.feed { font-family: var(--f-mono); font-size: 13px; color: var(--muted); border-left: 3px solid var(--safe); padding-left: 12px; min-height: 20px; }
+.empty { text-align: center; padding: 48px 16px; color: var(--muted); border: 2px dashed var(--line); border-radius: 6px; }
+
+.ruling { border: 2px solid var(--safe); background: var(--safe-bg); color: var(--ink); border-radius: 6px; padding: 20px; }
+.ruling .eyebrow { color: var(--safe); }
+table.ev { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.ev th, table.ev td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+table.ev td.n { font-family: var(--f-mono); text-align: right; font-variant-numeric: tabular-nums; }
+table.ev tr.best td { background: var(--safe-bg); }
+.scroll { overflow-x: auto; }
+.row-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+@media (prefers-reduced-motion: reduce) { .line.on, .line.miss, .row.new { animation: none; } * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Disclosure <span>Day</span></div>
+    <nav class="nav" aria-label="Views">
+      <a href="#play" id="navPlay">Play</a>
+      <a href="#live" id="navLive">Live leaderboard</a>
+    </nav>
+  </header>
+
+  <div id="playView">
+    <div class="grid">
+      <main class="stage" id="stage" aria-live="polite"></main>
+      <aside class="firm panel" id="firmPanel"></aside>
+    </div>
+  </div>
+
+  <section class="live" id="liveView" hidden>
+    <div class="live-head">
+      <div class="stack" style="gap:8px">
+        <div class="eyebrow">Class leaderboard · updates as each player closes their quarter</div>
+        <h1 id="liveTitle">Standings</h1>
+        <div class="livecount" id="liveCount"></div>
+      </div>
+      <div class="toggle" role="group" aria-label="Rank by">
+        <button id="byCash" aria-pressed="true">Rank by firm cash</button>
+        <button id="byWelfare" class="reveal" aria-pressed="false">Reveal: social welfare</button>
+      </div>
+    </div>
+    <div class="feed" id="feed"></div>
+    <ol class="rows" id="liveBoard"></ol>
+    <p class="note" id="liveNote"></p>
+  </section>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import * as fsdk from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ===== PASTE YOUR FIREBASE WEB CONFIG HERE (Project settings > General > Your apps) =====
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCiFgtNowTOvKYn-WXJVbPQCPmt8hEvjcc",
+  authDomain: "is4238-game.firebaseapp.com",
+  projectId: "is4238-game",
+  storageBucket: "is4238-game.firebasestorage.app",
+  messagingSenderId: "758982152897",
+  appId: "1:758982152897:web:75a434b6495fc4897eba40"
+};
+// =========================================================================================
+
+(function () {
+  "use strict";
+  const START = 200, L = 100;
+  const ROUNDS = [
+    { lib: "quillog 2.14", what: "the logging library", slow: ["Harbor Credit Union", "Tidewater Clinic"],
+      story: "Your firm paid for a review of quillog, the logging library behind half the payment systems in the city. This morning the auditors called: a crafted log line lets anyone run code on the server. No one else knows yet.",
+      chair: "We paid for that audit. Ship the fix to our servers and push it upstream. Cheapest option wins.",
+      partner: "Harbor Credit Union patches on the first Sunday of the month. If this goes public on a Tuesday, we're exposed for weeks." },
+    { lib: "zstream 3.1", what: "the compression library", slow: ["Pinecrest Schools", "Harbor Credit Union", "Larkspur Pharmacy"],
+      story: "A second finding from the same audit programme: zstream decompresses a malformed archive into memory it does not own. Three slow-moving organisations run it on public upload forms.",
+      chair: "Every dollar we spend on other people's patch schedules is a dollar off our number. The class board ranks firms by cash.",
+      partner: "Pinecrest Schools has one IT contractor for eleven campuses. We need a few days' warning to do anything." },
+    { lib: "tlsbeat 1.0.4", what: "the TLS library", slow: ["Tidewater Clinic", "Pinecrest Schools", "Larkspur Pharmacy", "Copperline Water"],
+      story: "The worst one yet: a heartbeat message in tlsbeat leaks server memory, private keys included. Four slow firms terminate encrypted traffic with it, one of them the water utility.",
+      chair: "If we sit on it, a rival might pay us for the fix later. If we publish, at least it costs us nothing.",
+      partner: "Copperline Water runs tlsbeat on control-room gateways. Change windows need sign-off from the regulator." },
+    { lib: "pixelgate 5.2", what: "the image parser", slow: ["Larkspur Pharmacy", "Harbor Credit Union", "Copperline Water"],
+      story: "Last finding of the quarter: pixelgate, the image parser in every customer photo upload, overflows on an oversized header. Close out the quarter however you like.",
+      chair: "Final quarter. Finish top of the board and the bonus pool is ours.",
+      partner: "We read the advisories. We just can't move as fast as you can." }
+  ];
+  const ROUTE = {
+    P: { name: "Public", cost: "Costs us $0k", text: "Commit the fix upstream now. Fast and free, but the commit shows attackers where the hole is." },
+    C: { name: "Coordinate", cost: "Costs us $5k + a minigame", text: "Privately warn the maintainers and the slow firms first, then publish together." },
+    W: { name: "Withhold", cost: "Costs us ~$3k (30% chance of a $10k hit)", text: "Fix only our own copy and say nothing. The flaw stays a zero-day for everyone else." }
+  };
+
+  // Stage 2 resolution. Coordinate opts: {warned:[bool], maintainers:bool, leaked:bool}
+  function resolve(choice, n, opts) {
+    const r = Math.random; let cost = 0, leakHit = false, found = null; const hits = [];
+    if (choice === "P") for (let i = 0; i < n; i++) hits.push(r() < .5);
+    if (choice === "C") { cost = 5; const ok = opts.maintainers && !opts.leaked;
+      for (let i = 0; i < n; i++) hits.push(r() < (ok && opts.warned[i] ? .1 : .5)); }
+    if (choice === "W") { leakHit = r() < .3; if (leakHit) cost = 10; found = r() < .4; for (let i = 0; i < n; i++) hits.push(found); }
+    return { cost, hits, losses: hits.filter(Boolean).length * L, leakHit, found };
+  }
+
+  const fmt = v => (v < 0 ? "−$" : "$") + Math.abs(Math.round(v)) + "k";
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------------- state
+  const hot = window.claude && window.claude.hot;
+  let S = { screen: "intro", round: 0, firm: "", money: START, welfare: 0, log: [], revealed: false, saved: false };
+  let last = null, mg = null;
+  const stage = document.getElementById("stage");
+
+  // ---------------- shared class data
+  let db = null, uid = null, classRows = [], classState = "off", seen = new Set(), firstSnap = true, freshIds = new Set();
+  let liveMode = "cash";
+
+  function boardRows() {
+    const rows = classRows.map(r => ({ ...r, you: r.id === uid }));
+    if (S.screen === "final" || S.screen === "reveal") {
+      if (!rows.some(r => r.you)) rows.push({ id: "you-local", firm: S.firm, money: S.money, welfare: S.welfare, you: true });
+      else rows.forEach(r => { if (r.you) { r.money = S.money; r.welfare = S.welfare; r.firm = S.firm; } });
+    }
+    return rows;
+  }
+  function sortRows(rows, mode) {
+    return rows.slice().sort((a, b) => mode === "welfare" ? (b.welfare - a.welfare || b.money - a.money) : (b.money - a.money || b.welfare - a.welfare));
+  }
+  // draws a ranked list into ol, animating moves (FLIP) and flashing new arrivals
+  function drawRanked(ol, rows, mode, animate) {
+    const before = {};
+    ol.querySelectorAll(".row").forEach(li => before[li.dataset.key] = li.getBoundingClientRect().top);
+    ol.textContent = "";
+    sortRows(rows, mode).forEach((r, i) => {
+      const li = document.createElement("li");
+      li.className = "row" + (r.you ? " you" : "") + (freshIds.has(r.id) ? " new" : ""); li.dataset.key = r.id;
+      const rk = document.createElement("span"); rk.className = "rk"; rk.textContent = String(i + 1).padStart(2, "0");
+      const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = r.firm;
+      if (r.you) { const t = document.createElement("small"); t.textContent = "YOU"; nm.appendChild(t); }
+      const sc = document.createElement("span"); sc.className = "sc";
+      if (mode === "welfare") { sc.textContent = fmt(r.welfare); const s = document.createElement("small"); s.textContent = "cash " + fmt(r.money); sc.appendChild(s); }
+      else sc.textContent = fmt(r.money);
+      li.append(rk, nm, sc); ol.appendChild(li);
+    });
+    if (animate && !reduce()) ol.querySelectorAll(".row").forEach(li => {
+      const b = before[li.dataset.key]; if (b == null) return;
+      const dy = b - li.getBoundingClientRect().top; if (!dy) return;
+      li.animate([{ transform: `translateY(${dy}px)` }, { transform: "translateY(0)" }], { duration: 900, easing: "cubic-bezier(.2,.8,.2,1)", delay: 120 });
+    });
+  }
+
+  // ---------------- your firm panel (no rivals, no welfare until the ruling)
+  function renderFirm() {
+    const p = document.getElementById("firmPanel");
+    const trail = ROUNDS.map((_, i) => { const l = S.log[i]; return `<span class="${l ? "d" : ""}">${l ? ROUTE[l.k].name.slice(0, 1) : i + 1}</span>`; }).join("");
+    p.innerHTML = `
+      <div><div class="lbl">Your firm</div><h3>${esc(S.firm || "Not named yet")}</h3></div>
+      <div><div class="lbl">Firm cash</div><div class="big">${fmt(S.money)}</div></div>
+      <div><div class="lbl">Incidents</div><div class="trail">${trail}</div></div>
+      ${S.revealed ? `<div><div class="lbl">Social welfare</div><div class="big" style="font-size:28px">${fmt(S.welfare)}</div></div>`
+        : `<p class="note">When you close the quarter, your result posts to the class leaderboard.</p>`}`;
+  }
+
+  // ---------------- screens
+  function render(animate) {
+    if (S.screen === "intro") intro();
+    else if (S.screen === "scene" || S.screen === "mini") scene();
+    else if (S.screen === "outcome") outcome();
+    else if (S.screen === "final") finalScreen(animate);
+    else if (S.screen === "reveal") reveal(animate);
+    renderFirm();
+  }
+
+  function intro() {
+    stage.innerHTML = `
+      <div class="stack">
+        <section class="hero">
+          <div class="eyebrow">Stage 2 · Disclosing the flaw</div>
+          <h1>Disclosure<span>Day</span></h1>
+          <p class="ticker">09:12 · Your firm's paid audit has found a zero-day in a library the whole city depends on. Three more findings are due this quarter.</p>
+          <p>You are the head of security. For each incident, decide how the fix gets out: publish it, coordinate it privately, or keep it to yourself. Everyone in class faces the same four incidents.</p>
+        </section>
+        <div class="goal"><b>Your goal:</b> finish the quarter with the most cash. The class leaderboard ranks every firm by firm cash. You start with ${fmt(START)}; a breach costs a firm ${fmt(L)}.</div>
+        <div class="panel stack">
+          <label for="firm">Name your firm</label>
+          <input type="text" id="firm" maxlength="24" placeholder="e.g. Lumen Systems" autocomplete="off">
+          <div class="row-actions"><button class="btn" id="go">Open the first incident</button></div>
+        </div>
+      </div>`;
+    const inp = document.getElementById("firm"); inp.value = S.firm;
+    document.getElementById("go").onclick = () => {
+      S.firm = (inp.value || "").trim().slice(0, 24) || "Lumen Systems";
+      S.screen = "scene"; render();
+    };
+  }
+
+  function scene() {
+    S.screen = "scene";
+    const rd = ROUNDS[S.round];
+    stage.innerHTML = `
+      <div class="stack">
+        <div class="scene-head"><div class="eyebrow">Incident ${S.round + 1} of ${ROUNDS.length}</div><span class="lib">${esc(rd.lib)}</span></div>
+        <h2>A zero-day in ${esc(rd.what)}</h2>
+        <p>${esc(rd.story)}</p>
+        <div class="quote chair"><div class="who">Board chair, ${esc(S.firm)}</div><p>“${esc(rd.chair)}”</p></div>
+        <div class="quote partner"><div class="who">Slow firm on the same library</div><p>“${esc(rd.partner)}”</p></div>
+        <div><h3 style="margin-bottom:8px">Slow firms running ${esc(rd.lib.split(" ")[0])}</h3>
+          <div class="slow">${rd.slow.map(s => `<span class="chip">${esc(s)}</span>`).join("")}</div></div>
+        <div class="choices">${["P", "C", "W"].map(k => `
+          <button class="choice" data-k="${k}"><span class="name">${ROUTE[k].name}</span><span class="cost">${ROUTE[k].cost}</span><p>${ROUTE[k].text}</p></button>`).join("")}</div>
+      </div>`;
+    stage.querySelectorAll(".choice").forEach(b => b.onclick = () => { const k = b.dataset.k; if (k === "C") miniIntro(); else commit(k, null); });
+  }
+
+  function miniIntro() {
+    S.screen = "mini";
+    const rd = ROUNDS[S.round];
+    stage.innerHTML = `
+      <div class="stack">
+        <div class="eyebrow">Coordinated disclosure · ${esc(rd.lib)}</div>
+        <h2>Run the embargo</h2>
+        <p>You have 12 seconds before the fix has to ship. Each contact's secure line comes online for a moment: click it while it glows to warn them privately. The upstream maintainers must be warned or the embargo fails. Do not post to the public mailing list: attackers read it.</p>
+        <div class="row-actions"><button class="btn" id="mgStart">Open the secure channel</button><button class="btn alt" id="mgBack">Choose a different route</button></div>
+      </div>`;
+    document.getElementById("mgStart").onclick = startMini;
+    document.getElementById("mgBack").onclick = () => { S.screen = "scene"; render(); };
+  }
+
+  function startMini() {
+    const rd = ROUNDS[S.round];
+    const targets = ["Upstream maintainers", ...rd.slow];
+    const DUR = 12, WIN = 1.35, SEG = DUR / 3;
+    const sched = targets.map(() => [0, 1, 2].map(s => s * SEG + .3 + Math.random() * (SEG - WIN - .5)));
+    stage.innerHTML = `
+      <div class="stack">
+        <div class="mg-top"><h2>Secure lines</h2><span class="mono" id="mgClock">12.0s</span></div>
+        <div class="timer"><i id="mgBar"></i></div>
+        <div class="lines">
+          ${targets.map((t, i) => `<button class="line" data-i="${i}"><span class="st">offline</span><span class="nm">${esc(t)}</span></button>`).join("")}
+          <button class="line decoy" data-i="decoy"><span class="st">always open</span><span class="nm">Public mailing list</span></button>
+        </div>
+        <p class="muted" id="mgMsg">Warned 0 of ${targets.length}.</p>
+      </div>`;
+    const btns = [...stage.querySelectorAll(".line")];
+    mg = { t0: performance.now(), warned: targets.map(() => false), leaked: false, over: false, raf: 0 };
+    const isOn = (i, t) => sched[i].some(s => t >= s && t <= s + WIN);
+    const finish = () => {
+      if (mg.over) return; mg.over = true; cancelAnimationFrame(mg.raf);
+      const opts = { maintainers: mg.warned[0], leaked: mg.leaked, warned: mg.warned.slice(1) };
+      setTimeout(() => commit("C", opts), 500);
+    };
+    btns.forEach(b => b.onclick = () => {
+      if (mg.over) return;
+      if (b.dataset.i === "decoy") { mg.leaked = true; document.getElementById("mgMsg").textContent = "You posted to the public list. The embargo is broken."; finish(); return; }
+      const i = +b.dataset.i, t = (performance.now() - mg.t0) / 1000;
+      if (mg.warned[i]) return;
+      if (isOn(i, t)) {
+        mg.warned[i] = true; b.classList.remove("on"); b.classList.add("done"); b.querySelector(".st").textContent = "warned";
+        const n = mg.warned.filter(Boolean).length;
+        document.getElementById("mgMsg").textContent = `Warned ${n} of ${targets.length}.`;
+        if (n === targets.length) finish();
+      } else { b.classList.remove("miss"); void b.offsetWidth; b.classList.add("miss"); }
+    });
+    const tick = () => {
+      const t = (performance.now() - mg.t0) / 1000;
+      document.getElementById("mgClock").textContent = Math.max(0, DUR - t).toFixed(1) + "s";
+      document.getElementById("mgBar").style.transform = `scaleX(${Math.max(0, 1 - t / DUR)})`;
+      btns.forEach(b => {
+        if (b.dataset.i === "decoy") return; const i = +b.dataset.i; if (mg.warned[i]) return;
+        const on = isOn(i, t); b.classList.toggle("on", on); b.querySelector(".st").textContent = on ? "online — click" : "offline";
+      });
+      if (t >= DUR) finish(); else mg.raf = requestAnimationFrame(tick);
+    };
+    mg.raf = requestAnimationFrame(tick);
+  }
+
+  function commit(k, opts) {
+    const rd = ROUNDS[S.round];
+    const o = resolve(k, rd.slow.length, opts || { maintainers: false, leaked: false, warned: [] });
+    S.money -= o.cost; S.welfare -= o.cost + o.losses;
+    S.log.push({ k, cost: o.cost, losses: o.losses, n: rd.slow.length });
+    last = { k, o, opts, rd };
+    S.screen = "outcome"; render();
+  }
+
+  function outcome() {
+    const { k, o, opts, rd } = last;
+    let headline, detail;
+    if (k === "P") { headline = "Fix published"; detail = "The commit went live at 11:40. Exploit code appeared on a forum by evening."; }
+    if (k === "C") {
+      if (opts.leaked) { headline = "Embargo broken"; detail = "Your post hit the public list before anyone could patch. It played out like a public release, and you still paid for the coordination."; }
+      else if (!opts.maintainers) { headline = "Embargo failed"; detail = "The maintainers never got the warning, so the fix shipped without a coordinated date. Warned firms had nothing to apply in time."; }
+      else { const w = opts.warned.filter(Boolean).length; headline = "Coordinated release"; detail = `You warned the maintainers and ${w} of ${rd.slow.length} slow firms before publication. Warned firms had the patch staged when the advisory went out.`; }
+    }
+    if (k === "W") { headline = "Kept quiet"; detail = (o.found ? "An attacker found the same flaw on his own three weeks later. Nobody else had a fix." : "So far, nobody else has found it.") + (o.leakHit ? " A former auditor talked: the press says you sat on a known flaw." : ""); }
+    const chair = o.cost === 0 ? "Good. Our number is holding up. Their breaches are their problem." : "That cost us. Watch the number.";
+    stage.innerHTML = `
+      <div class="stack">
+        <div class="eyebrow">Incident ${S.round + 1} result · ${ROUTE[k].name}</div>
+        <h2>${headline}</h2>
+        <p>${detail}</p>
+        <div><h3 style="margin-bottom:8px">Slow firms</h3><div class="slow">${rd.slow.map((s, i) => `<span class="chip ${o.hits[i] ? "hit" : "ok"}">${esc(s)} · ${o.hits[i] ? "breached" : "safe"}</span>`).join("")}</div></div>
+        <div class="panel"><div class="ledger">
+          <span>${esc(S.firm)} spent this round</span><span class="v ${o.cost ? "neg" : ""}">${fmt(-o.cost)}</span>
+          <span>${esc(S.firm)} cash</span><span class="v">${fmt(S.money)}</span>
+        </div></div>
+        <div class="quote chair"><div class="who">Board chair</div><p>“${chair}”</p></div>
+        <div class="row-actions"><button class="btn" id="next">${S.round + 1 < ROUNDS.length ? "Next incident" : "Close the quarter"}</button></div>
+      </div>`;
+    document.getElementById("next").onclick = () => {
+      last = null;
+      if (S.round + 1 < ROUNDS.length) { S.round++; S.screen = "scene"; render(); }
+      else { S.screen = "final"; render(); saveRun(); }
+    };
+  }
+
+  function boardBlock(id) {
+    return `<div class="panel stack"><ol class="rows" id="${id}"></ol><p class="note" id="${id}Note"></p></div>`;
+  }
+  function fillEndBoard(mode, animate) {
+    const ol = document.getElementById("endBoard"); if (!ol) return;
+    const rows = boardRows();
+    drawRanked(ol, rows, mode, animate);
+    const note = document.getElementById("endBoardNote");
+    if (classState === "off") note.textContent = "The class board isn't available in this view, so only your firm is shown.";
+    else if (classState === "loading") note.textContent = "Loading other players…";
+    else if (classState === "slow") note.textContent = "Other players can't be reached right now.";
+    else if (S.saved === "no") note.textContent = "Your run couldn't be posted to the class board. Check your connection and play again.";
+    else note.textContent = `${rows.length} firm${rows.length === 1 ? "" : "s"} so far. New players appear as they finish.`;
+  }
+
+  function finalScreen(animate) {
+    const rows = sortRows(boardRows(), "cash"); const rank = rows.findIndex(r => r.you) + 1;
+    stage.innerHTML = `
+      <div class="stack">
+        <div class="eyebrow">Quarter closed · class leaderboard</div>
+        <h2>You're #${rank} of ${rows.length} on firm cash</h2>
+        <p>${esc(S.firm)} closes the quarter with ${fmt(S.money)}. The board chair is drafting the bonus memo.</p>
+        ${boardBlock("endBoard")}
+        <div class="panel stack">
+          <h3>One more thing</h3>
+          <p>The library consortium that maintains the shared code has issued its ruling on this quarter. It decides who wins.</p>
+          <div class="row-actions"><button class="btn" id="ruling">Read the ruling</button></div>
+        </div>
+      </div>`;
+    fillEndBoard("cash", animate);
+    document.getElementById("ruling").onclick = () => { S.revealed = true; S.screen = "reveal"; render(true); };
+  }
+
+  function reveal(animate) {
+    const rows = sortRows(boardRows(), "welfare"); const rank = rows.findIndex(r => r.you) + 1;
+    const counts = { P: 0, C: 0, W: 0 }; S.log.forEach(l => counts[l.k]++);
+    const totalSlow = ROUNDS.reduce((a, r) => a + r.slow.length, 0);
+    const slowLoss = S.log.reduce((a, l) => a + l.losses, 0);
+    const keep = animate ? document.getElementById("endBoard") : null;   // keep old rows for the re-sort animation
+    stage.innerHTML = `
+      <div class="stack">
+        <div class="ruling stack">
+          <div class="eyebrow">Ruling of the library consortium</div>
+          <h2>The winner is the firm that left everyone best off</h2>
+          <p>Cash was never the scoring rule. Every firm in the city runs the same libraries, so the consortium ranks firms by <b>social welfare</b>: your own spending plus every breach your disclosure choices left on the slow firms.</p>
+        </div>
+        <h2>You're #${rank} of ${rows.length} on social welfare</h2>
+        <div class="panel stack"><div id="endSlot"></div><p class="note" id="endBoardNote"></p></div>
+        <div class="panel"><div class="ledger">
+          <span>${esc(S.firm)}'s own spending</span><span class="v neg">${fmt(S.money - START)}</span>
+          <span>Breaches suffered by slow firms</span><span class="v neg">${fmt(-slowLoss)}</span>
+          <span><b>Social welfare</b></span><span class="v"><b>${fmt(S.welfare)}</b></span>
+          <span class="muted">Your routes</span><span class="v muted">Public ${counts.P} · Coordinate ${counts.C} · Withhold ${counts.W}</span>
+        </div></div>
+        <h3>Why the cash leaders fell</h3>
+        <p>Each round, the cheapest route for your firm was to publish: it cost you nothing. The best route for everyone was to coordinate: it cost the finder $5k but cut each slow firm's expected loss from $50k to $10k. The finder pays for coordination while the slow firms get the benefit, so a firm judged on its own cash never coordinates. That gap between the <b>equilibrium</b> (publish) and the <b>social optimum</b> (coordinate) is a <b>negative externality</b>.</p>
+        <div class="scroll"><table class="ev">
+          <thead><tr><th>Route</th><th>Cost to finder</th><th>Expected loss, each slow firm</th><th>Total with 3 slow firms</th></tr></thead>
+          <tbody>
+            <tr><td>Public</td><td class="n">$0k</td><td class="n">$50k</td><td class="n">$150k</td></tr>
+            <tr class="best"><td>Coordinate</td><td class="n">$5k</td><td class="n">$10k</td><td class="n">$35k</td></tr>
+            <tr><td>Withhold</td><td class="n">$3k</td><td class="n">$40k</td><td class="n">$123k</td></tr>
+          </tbody></table></div>
+        <p class="muted">Across these four incidents, always coordinating perfectly has an expected welfare of ${fmt(-(5 * ROUNDS.length + 10 * totalSlow))}; always publishing, ${fmt(-50 * totalSlow)}. Outcomes are random draws from those probabilities, so luck moves individual results.</p>
+        <p>Because the finder will not coordinate on its own, coordination has to be required up front, for example in the audit agreement that paid for the review.</p>
+        <div class="row-actions"><button class="btn" id="again">Play again</button><a class="btn alt" href="#live" style="text-decoration:none">Open the live leaderboard</a></div>
+      </div>`;
+    const slot = document.getElementById("endSlot");
+    if (keep) { slot.replaceWith(keep); } else { const ol = document.createElement("ol"); ol.className = "rows"; ol.id = "endBoard"; slot.replaceWith(ol); }
+    fillEndBoard("welfare", !!keep);
+    document.getElementById("again").onclick = () => {
+      S = { screen: "intro", round: 0, firm: S.firm, money: START, welfare: 0, log: [], revealed: false, saved: false };
+      last = null; render(); scrollTo(0, 0);
+    };
+  }
+
+  // ---------------- live tab
+  function renderLive(animate) {
+    const ol = document.getElementById("liveBoard");
+    const byW = liveMode === "welfare";
+    document.getElementById("byCash").setAttribute("aria-pressed", String(!byW));
+    document.getElementById("byWelfare").setAttribute("aria-pressed", String(byW));
+    document.getElementById("liveTitle").textContent = byW ? "Ranked by social welfare" : "Ranked by firm cash";
+    const rows = classRows.map(r => ({ ...r, you: r.id === uid }));
+    document.getElementById("liveCount").textContent = `${rows.length} firm${rows.length === 1 ? "" : "s"} finished`;
+    const note = document.getElementById("liveNote");
+    if (classState === "off") { ol.innerHTML = `<li class="empty">The class leaderboard isn't connected yet. Paste your Firebase config into index.html.</li>`; note.textContent = ""; return; }
+    if (!rows.length) { ol.innerHTML = `<li class="empty">${classState === "loading" ? "Connecting…" : classState === "slow" ? "The class board can't be reached right now." : "Waiting for the first firm to close its quarter."}</li>`; note.textContent = ""; return; }
+    drawRanked(ol, rows, liveMode, animate);
+    note.textContent = byW ? "Social welfare = the firm's own spending plus every breach its choices left on the slow firms." : "Keep the welfare reveal for after everyone has finished.";
+    const recent = classRows.slice().sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 3);
+    document.getElementById("feed").textContent = recent.length ? "Latest: " + recent.map(r => `${r.firm} (${fmt(r.money)})`).join(" · ") : "";
+  }
+  document.getElementById("byCash").onclick = () => { liveMode = "cash"; renderLive(true); };
+  document.getElementById("byWelfare").onclick = () => { liveMode = "welfare"; renderLive(true); };
+
+  let view = location.hash === "#live" ? "live" : "play";
+  function go(v) {
+    view = v; route();
+    try { if (location.hash !== "#" + v) history.replaceState(null, "", "#" + v); } catch (e) { /* hash not available in this view */ }
+    scrollTo(0, 0);
+  }
+  document.addEventListener("click", e => {
+    const a = e.target.closest && e.target.closest('a[href="#live"], a[href="#play"]');
+    if (!a) return; e.preventDefault(); go(a.getAttribute("href").slice(1));
+  });
+  function route() {
+    const live = view === "live";
+    document.getElementById("playView").hidden = live;
+    document.getElementById("liveView").hidden = !live;
+    document.getElementById("navPlay").setAttribute("aria-current", live ? "false" : "page");
+    document.getElementById("navLive").setAttribute("aria-current", live ? "page" : "false");
+    if (live) renderLive(false);
+  }
+  addEventListener("hashchange", () => { view = location.hash === "#live" ? "live" : "play"; route(); });
+
+  // ---------------- db wiring
+  async function saveRun() {
+    if (!db || !uid || S.saved === true) { if (!uid && db) { S.saved = "no"; fillEndBoard("cash"); } return; }
+    try {
+      await fsdk.setDoc(fsdk.doc(db, "scores", uid), { firm: S.firm.slice(0, 24), money: S.money, welfare: S.welfare,
+        routes: S.log.map(l => l.k).join(""), at: new Date().toISOString() });
+      S.saved = true;
+    } catch (e) { S.saved = "no"; }
+    if (S.screen === "final") fillEndBoard("cash", true);
+  }
+  function onClassChange() {
+    if (S.screen === "final") fillEndBoard("cash", true);
+    if (S.screen === "reveal") fillEndBoard("welfare", true);
+    if (view === "live") renderLive(true);
+  }
+  async function initDb() {
+    if (!FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey.startsWith("PASTE")) { onClassChange(); return; }
+    classState = "loading"; onClassChange();
+    try {
+      const app = initializeApp(FIREBASE_CONFIG);
+      const auth = getAuth(app);
+      await signInAnonymously(auth);
+      uid = auth.currentUser.uid;
+      db = fsdk.getFirestore(app);
+    } catch (e) { console.error(e); classState = "slow"; onClassChange(); return; }
+    const timer = setTimeout(() => { if (classState === "loading") { classState = "slow"; onClassChange(); } }, 10000);
+    fsdk.onSnapshot(fsdk.query(fsdk.collection(db, "scores"), fsdk.limit(500)), { includeMetadataChanges: false }, snap => {
+      classRows = snap.docs.map(doc => { const x = doc.data() || {}; return {
+        id: doc.id, firm: String(x.firm || "Unnamed firm").slice(0, 24), at: String(x.at || ""),
+        money: Number.isFinite(+x.money) ? +x.money : 0, welfare: Number.isFinite(+x.welfare) ? +x.welfare : 0 }; });
+      freshIds = new Set();
+      if (!firstSnap) classRows.forEach(r => { if (!seen.has(r.id) || snap.docChanges().some(ch => ch.doc.id === r.id && ch.type !== "removed")) freshIds.add(r.id); });
+      classRows.forEach(r => seen.add(r.id)); firstSnap = false;
+      if (!snap.metadata.fromCache) clearTimeout(timer);
+      classState = "on"; onClassChange();
+      setTimeout(() => { freshIds = new Set(); }, 2600);
+    }, () => { clearTimeout(timer); classState = "slow"; onClassChange(); });
+  }
+
+  // ---------------- boot (keeps an in-progress run across page updates)
+  function start(data) {
+    if (data && data.S) S = data.S;
+    if (S.screen === "mini") S.screen = "scene";
+    if (S.screen === "outcome") { if (S.log.length >= ROUNDS.length) S.screen = "final"; else { S.screen = "scene"; if (S.log.length > S.round) S.round++; } }
+    if (S.revealed) S.screen = "reveal";
+    render(); route(); initDb();
+  }
+  if (hot && hot.snapshot) hot.snapshot(() => ({ S, liveMode }));
+  if (hot && hot.ready) hot.ready(d => { if (d && d.liveMode) liveMode = d.liveMode; start(d); });
+  else start(hot && hot.data ? hot.data : {});
+})();
+</script>
+</body>
+</html>
