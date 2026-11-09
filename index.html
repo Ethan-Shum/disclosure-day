@@ -209,7 +209,7 @@ const FIREBASE_CONFIG = {
 
 (function () {
   "use strict";
-  const START = 10000, L = 10000;   // dollars: starting cash, and the loss when a firm is breached
+  const START = 50000, L = 100000;   // dollars: starting cash, and the loss when a firm is breached
   const ROUNDS = [
     { lib: "quillog 2.14", what: "the logging library", slow: ["Harbor Credit Union", "Tidewater Clinic"],
       story: "Your firm paid for a review of quillog, the logging library behind half the payment systems in the city. This morning the auditors called: a crafted log line lets anyone run code on the server. No one else knows yet.",
@@ -230,17 +230,17 @@ const FIREBASE_CONFIG = {
   ];
   const ROUTE = {
     P: { name: "Public", cost: "Costs us $0", text: "Commit the fix upstream now. Fast and free, but the commit shows attackers where the hole is." },
-    C: { name: "Coordinate", cost: "Costs us $500 + a minigame", text: "Privately warn the maintainers and the slow firms first, then publish together." },
-    W: { name: "Withhold", cost: "Costs us ~$300 (30% chance of a $1,000 hit)", text: "Fix only our own copy and say nothing. The flaw stays a zero-day for everyone else." }
+    C: { name: "Coordinate", cost: "Costs us $5,000 + a minigame", text: "Privately warn the maintainers and the slow firms first, then publish together." },
+    W: { name: "Withhold", cost: "Costs us ~$3,000 (30% chance of a $10,000 hit)", text: "Fix only our own copy and say nothing. The flaw stays a zero-day for everyone else." }
   };
 
   // Stage 2 resolution. Coordinate opts: {warned:[bool], maintainers:bool, leaked:bool}
   function resolve(choice, n, opts) {
     const r = Math.random; let cost = 0, leakHit = false, found = null; const hits = [];
     if (choice === "P") for (let i = 0; i < n; i++) hits.push(r() < .5);
-    if (choice === "C") { cost = 500; const ok = opts.maintainers && !opts.leaked;
+    if (choice === "C") { cost = 5000; const ok = opts.maintainers && !opts.leaked;
       for (let i = 0; i < n; i++) hits.push(r() < (ok && opts.warned[i] ? .1 : .5)); }
-    if (choice === "W") { leakHit = r() < .3; if (leakHit) cost = 1000; found = r() < .4; for (let i = 0; i < n; i++) hits.push(found); }
+    if (choice === "W") { leakHit = r() < .3; if (leakHit) cost = 10000; found = r() < .4; for (let i = 0; i < n; i++) hits.push(found); }
     return { cost, hits, losses: hits.filter(Boolean).length * L, leakHit, found };
   }
 
@@ -512,15 +512,15 @@ const FIREBASE_CONFIG = {
           <span class="muted">Your routes</span><span class="v muted">Public ${counts.P} · Coordinate ${counts.C} · Withhold ${counts.W}</span>
         </div></div>
         <h3>Why the cash leaders fell</h3>
-        <p>Each round, the cheapest route for your firm was to publish: it cost you nothing. The best route for everyone was to coordinate: it cost the finder $500 but cut each slow firm's expected loss from $5,000 to $1,000. The finder pays for coordination while the slow firms get the benefit, so a firm judged on its own cash never coordinates. That gap between the <b>equilibrium</b> (publish) and the <b>social optimum</b> (coordinate) is a <b>negative externality</b>.</p>
+        <p>Each round, the cheapest route for your firm was to publish: it cost you nothing. The best route for everyone was to coordinate: it cost the finder $5,000 but cut each slow firm's expected loss from $50,000 to $10,000. The finder pays for coordination while the slow firms get the benefit, so a firm judged on its own cash never coordinates. That gap between the <b>equilibrium</b> (publish) and the <b>social optimum</b> (coordinate) is a <b>negative externality</b>.</p>
         <div class="scroll"><table class="ev">
           <thead><tr><th>Route</th><th>Cost to finder</th><th>Expected loss, each slow firm</th><th>Total with 3 slow firms</th></tr></thead>
           <tbody>
-            <tr><td>Public</td><td class="n">$0</td><td class="n">$5,000</td><td class="n">$15,000</td></tr>
-            <tr class="best"><td>Coordinate</td><td class="n">$500</td><td class="n">$1,000</td><td class="n">$3,500</td></tr>
-            <tr><td>Withhold</td><td class="n">$300</td><td class="n">$4,000</td><td class="n">$12,300</td></tr>
+            <tr><td>Public</td><td class="n">$0</td><td class="n">$50,000</td><td class="n">$150,000</td></tr>
+            <tr class="best"><td>Coordinate</td><td class="n">$5,000</td><td class="n">$10,000</td><td class="n">$35,000</td></tr>
+            <tr><td>Withhold</td><td class="n">$3,000</td><td class="n">$40,000</td><td class="n">$123,000</td></tr>
           </tbody></table></div>
-        <p class="muted">Across these four incidents, always coordinating perfectly has an expected welfare of ${fmt(-(500 * ROUNDS.length + 1000 * totalSlow))}; always publishing, ${fmt(-5000 * totalSlow)}. Outcomes are random draws from those probabilities, so luck moves individual results.</p>
+        <p class="muted">Across these four incidents, always coordinating perfectly has an expected welfare of ${fmt(-(5000 * ROUNDS.length + 10000 * totalSlow))}; always publishing, ${fmt(-50000 * totalSlow)}. Outcomes are random draws from those probabilities, so luck moves individual results.</p>
         <p>Because the finder will not coordinate on its own, coordination has to be required up front, for example in the audit agreement that paid for the review.</p>
         <div class="row-actions"><button class="btn" id="again">Play again</button><a class="btn alt" href="#live" style="text-decoration:none">Open the live leaderboard</a></div>
       </div>`;
