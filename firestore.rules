@@ -12,9 +12,9 @@ service cloud.firestore {
         && request.resource.data.firm.size() > 0
         && request.resource.data.firm.size() <= 24
         && request.resource.data.money is number
-        && request.resource.data.money >= 160 && request.resource.data.money <= 200
+        && request.resource.data.money >= 6000 && request.resource.data.money <= 10000
         && request.resource.data.welfare is number
-        && request.resource.data.welfare >= -1240 && request.resource.data.welfare <= 0
+        && request.resource.data.welfare >= -124000 && request.resource.data.welfare <= 0
         && request.resource.data.routes is string
         && request.resource.data.routes.size() <= 4
         && request.resource.data.at is string;
