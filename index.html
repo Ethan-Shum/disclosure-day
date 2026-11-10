@@ -62,6 +62,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--focus); out
 .btn { background: var(--ink); color: var(--paper); border: 0; border-radius: 4px; padding: 12px 20px; font-family: var(--f-display); font-weight: 700; letter-spacing: .03em; text-transform: uppercase; font-size: 14px; }
 .btn:hover { background: var(--ink-soft); }
 .btn.alt { background: transparent; color: var(--ink); border: 2px solid var(--ink); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
 label { font-weight: 600; font-size: 14px; }
 input[type=text] { font: inherit; width: 100%; max-width: 360px; padding: 10px 12px; border: 2px solid var(--line); border-radius: 4px; background: var(--card); color: var(--ink); }
 
@@ -274,6 +275,9 @@ const FIREBASE_CONFIG = {
   // ---------------- shared class data
   let db = null, uid = null, classRows = [], classState = "off", seen = new Set(), firstSnap = true, freshIds = new Set();
   let liveMode = "cash";
+  // The presenter opens the Live tab with ?host=<key> and releases the ruling to every player from there.
+  const HOST_KEY = (new URLSearchParams(location.search).get("host") || "").trim();
+  let released = false;
 
   function boardRows() {
     const rows = classRows.map(r => ({ ...r, you: r.id === uid }));
@@ -516,8 +520,10 @@ const FIREBASE_CONFIG = {
         ${boardBlock("endBoard")}
         <div class="panel stack">
           <h3>One more thing</h3>
-          <p>The library consortium that maintains the shared code has issued its ruling on this quarter. It decides who wins.</p>
-          <div class="row-actions"><button class="btn" id="ruling">Read the ruling</button></div>
+          ${released || !db ? `<p>The library consortium that maintains the shared code has issued its ruling on this quarter. It decides who wins.</p>
+          <div class="row-actions"><button class="btn" id="ruling">Read the ruling</button></div>`
+          : `<p>The library consortium that maintains the shared code is still deciding its ruling on this quarter. Your presenter will release it once every firm has finished. Keep this page open.</p>
+          <div class="row-actions"><button class="btn" id="ruling" disabled>Waiting for the ruling…</button></div>`}
         </div>
       </div>`;
     fillEndBoard("cash", animate);
@@ -574,6 +580,9 @@ const FIREBASE_CONFIG = {
     const byW = liveMode === "welfare";
     document.getElementById("byCash").setAttribute("aria-pressed", String(!byW));
     document.getElementById("byWelfare").setAttribute("aria-pressed", String(byW));
+    const wBtn = document.getElementById("byWelfare");
+    wBtn.hidden = !(HOST_KEY || released);
+    wBtn.textContent = HOST_KEY && !released ? "Reveal to everyone: social welfare" : "Reveal: social welfare";
     document.getElementById("liveTitle").textContent = byW ? "Ranked by social welfare" : "Ranked by firm value";
     const rows = classRows.map(r => ({ ...r, you: r.id === uid }));
     document.getElementById("liveCount").textContent = `${rows.length} firm${rows.length === 1 ? "" : "s"} finished`;
@@ -581,12 +590,23 @@ const FIREBASE_CONFIG = {
     if (classState === "off") { ol.innerHTML = `<li class="empty">The class leaderboard isn't connected yet. Paste your Firebase config into index.html.</li>`; note.textContent = ""; return; }
     if (!rows.length) { ol.innerHTML = `<li class="empty">${classState === "loading" ? "Connecting…" : classState === "slow" ? "The class board can't be reached right now." : "Waiting for the first firm to close its quarter."}</li>`; note.textContent = ""; return; }
     drawRanked(ol, rows, liveMode, animate);
-    note.textContent = byW ? "Social welfare = the firm's own spending plus every breach its choices left on the slow firms." : "Keep the welfare reveal for after everyone has finished.";
+    note.textContent = byW ? "Social welfare = the firm's own spending plus every breach its choices left on the slow firms." : (HOST_KEY ? "Keep the reveal until every team has explained its choices. Pressing it also releases the ruling on every player's screen." : "Firms appear here as they close their quarter.");
     const recent = classRows.slice().sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 3);
     document.getElementById("feed").textContent = recent.length ? "Latest: " + recent.map(r => `${r.firm} (${fmt(val(r))})`).join(" · ") : "";
   }
   document.getElementById("byCash").onclick = () => { liveMode = "cash"; renderLive(true); };
-  document.getElementById("byWelfare").onclick = () => { liveMode = "welfare"; renderLive(true); };
+  document.getElementById("byWelfare").onclick = async () => {
+    liveMode = "welfare"; renderLive(true);
+    if (HOST_KEY && db && !released) {
+      try { await fsdk.setDoc(fsdk.doc(db, "reveal", HOST_KEY), { at: new Date().toISOString() }); }
+      catch (e) { document.getElementById("liveNote").textContent = "The ruling couldn't be released to players. Check the host link."; }
+    }
+  };
+  function onRelease() {
+    if (S.screen === "final") render(false);
+    if (released && view === "live") liveMode = "welfare";
+    if (view === "live") renderLive(true);
+  }
 
   let view = location.hash === "#live" ? "live" : "play";
   function go(v) {
@@ -645,6 +665,10 @@ const FIREBASE_CONFIG = {
       classState = "on"; onClassChange();
       setTimeout(() => { freshIds = new Set(); }, 2600);
     }, () => { clearTimeout(timer); classState = "slow"; onClassChange(); });
+    fsdk.onSnapshot(fsdk.collection(db, "reveal"), snap => {
+      const was = released; released = !snap.empty;
+      if (released !== was) onRelease();
+    }, () => {});
   }
 
   // ---------------- boot (keeps an in-progress run across page updates)
