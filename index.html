@@ -619,9 +619,15 @@ const FIREBASE_CONFIG = {
   };
   // ---------------- presenter controls (host link only)
   let hostReady = Promise.resolve();
+  let revealIds = [];
   const hostSay = t => { document.getElementById("hostMsg").textContent = t; };
   document.getElementById("hostUnreveal").onclick = async () => {
-    try { await hostReady; await fsdk.deleteDoc(fsdk.doc(db, "reveal", "released")); liveMode = "cash"; hostSay("Ruling locked again. Players who finish now see “Waiting for the ruling”."); renderLive(true); }
+    try {
+      await hostReady;
+      const batch = fsdk.writeBatch(db);
+      new Set(["released", ...revealIds]).forEach(id => batch.delete(fsdk.doc(db, "reveal", id)));
+      await batch.commit();
+      liveMode = "cash"; hostSay("Ruling locked again. Players who finish now see “Waiting for the ruling”."); renderLive(true); }
     catch (e) { hostSay("Couldn't lock the ruling. Check the host link."); }
   };
   document.getElementById("hostClear").onclick = async () => {
@@ -702,6 +708,7 @@ const FIREBASE_CONFIG = {
       setTimeout(() => { freshIds = new Set(); }, 2600);
     }, () => { clearTimeout(timer); classState = "slow"; onClassChange(); });
     fsdk.onSnapshot(fsdk.collection(db, "reveal"), snap => {
+      revealIds = snap.docs.map(d => d.id);
       const was = released; released = !snap.empty;
       if (released !== was) onRelease();
     }, () => {});
