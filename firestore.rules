@@ -1,8 +1,24 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // A browser opened with the presenter's host link registers itself here.
+    // The real key is set only in the Firebase console; this placeholder is never valid.
+    function isHost() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/hosts/$(request.auth.uid));
+    }
+
+    match /hosts/{uid} {
+      allow read: if false;
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['key', 'at'])
+        && request.resource.data.key == 'REPLACE_WITH_HOST_KEY';
+      allow delete: if false;
+    }
+
     // Class leaderboard: anyone can read; each player (anonymous sign-in) writes only their own row,
-    // and only with values the game can actually produce.
+    // and only with values the game can actually produce. Presenters can clear it.
     match /scores/{playerId} {
       allow read: if true;
       allow create, update: if request.auth != null
@@ -21,16 +37,17 @@ service cloud.firestore {
         && request.resource.data.routes is string
         && request.resource.data.routes.size() <= 4
         && request.resource.data.at is string;
-      allow delete: if false;
+      allow delete: if isHost();
     }
-    // Presenter releases the ruling: creating reveal/<host key> unlocks it for every player.
-    // The real key is set only in the Firebase console; this placeholder is never valid.
-    match /reveal/{key} {
+
+    // Presenters release (create) and re-lock (delete) the ruling for every player.
+    match /reveal/{doc} {
       allow read: if true;
-      allow create: if key == 'REPLACE_WITH_HOST_KEY'
-        && request.resource.data.keys().hasOnly(['at']);
-      allow update, delete: if false;
+      allow create: if isHost() && request.resource.data.keys().hasOnly(['at']);
+      allow delete: if isHost();
+      allow update: if false;
     }
+
     match /{document=**} {
       allow read, write: if false;
     }

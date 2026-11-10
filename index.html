@@ -149,6 +149,12 @@ input[type=text] { font: inherit; width: 100%; max-width: 360px; padding: 10px 1
 .live .rows .row .rk { font-size: clamp(13px, 1.4vw, 16px); }
 .livecount { font-family: var(--f-mono); font-size: 13px; color: var(--muted); }
 .feed { font-family: var(--f-mono); font-size: 13px; color: var(--muted); border-left: 3px solid var(--safe); padding-left: 12px; min-height: 20px; }
+.hostbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px; border: 2px dashed var(--line); border-radius: 6px; }
+.hostbar .hostlabel { font-family: var(--f-mono); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.hostbar button { background: transparent; border: 2px solid var(--ink); color: var(--ink); border-radius: 4px; padding: 6px 12px; font-family: var(--f-display); font-weight: 700; text-transform: uppercase; font-size: 12px; letter-spacing: .03em; }
+.hostbar button.danger { border-color: var(--danger); color: var(--danger); }
+.hostbar button:disabled { opacity: .5; cursor: not-allowed; }
+.hostbar .hostmsg { font-size: 13px; color: var(--muted); }
 .empty { text-align: center; padding: 48px 16px; color: var(--muted); border: 2px dashed var(--line); border-radius: 6px; }
 
 .ruling { border: 2px solid var(--safe); background: var(--safe-bg); color: var(--ink); border-radius: 6px; padding: 20px; }
@@ -191,6 +197,12 @@ table.ev tr.best td { background: var(--safe-bg); }
         <button id="byCash" aria-pressed="true">Rank by firm value</button>
         <button id="byWelfare" class="reveal" aria-pressed="false">Reveal: social welfare</button>
       </div>
+    </div>
+    <div class="hostbar" id="hostBar" hidden>
+      <span class="hostlabel">Presenter controls</span>
+      <button id="hostUnreveal" hidden>Unreveal: lock the ruling again</button>
+      <button id="hostClear" class="danger">Clear leaderboard</button>
+      <span class="hostmsg" id="hostMsg"></span>
     </div>
     <div class="feed" id="feed"></div>
     <ol class="rows" id="liveBoard"></ol>
@@ -582,6 +594,9 @@ const FIREBASE_CONFIG = {
     document.getElementById("byWelfare").setAttribute("aria-pressed", String(byW));
     const wBtn = document.getElementById("byWelfare");
     wBtn.hidden = !(HOST_KEY || released);
+    document.getElementById("hostBar").hidden = !HOST_KEY;
+    document.getElementById("hostUnreveal").hidden = !released;
+    document.getElementById("hostClear").disabled = !classRows.length;
     wBtn.textContent = HOST_KEY && !released ? "Reveal to everyone: social welfare" : "Reveal: social welfare";
     document.getElementById("liveTitle").textContent = byW ? "Ranked by social welfare" : "Ranked by firm value";
     const rows = classRows.map(r => ({ ...r, you: r.id === uid }));
@@ -598,9 +613,27 @@ const FIREBASE_CONFIG = {
   document.getElementById("byWelfare").onclick = async () => {
     liveMode = "welfare"; renderLive(true);
     if (HOST_KEY && db && !released) {
-      try { await fsdk.setDoc(fsdk.doc(db, "reveal", HOST_KEY), { at: new Date().toISOString() }); }
-      catch (e) { document.getElementById("liveNote").textContent = "The ruling couldn't be released to players. Check the host link."; }
+      try { await hostReady; await fsdk.setDoc(fsdk.doc(db, "reveal", "released"), { at: new Date().toISOString() }); }
+      catch (e) { hostSay("The ruling couldn't be released to players. Check the host link."); }
     }
+  };
+  // ---------------- presenter controls (host link only)
+  let hostReady = Promise.resolve();
+  const hostSay = t => { document.getElementById("hostMsg").textContent = t; };
+  document.getElementById("hostUnreveal").onclick = async () => {
+    try { await hostReady; await fsdk.deleteDoc(fsdk.doc(db, "reveal", "released")); liveMode = "cash"; hostSay("Ruling locked again. Players who finish now see “Waiting for the ruling”."); renderLive(true); }
+    catch (e) { hostSay("Couldn't lock the ruling. Check the host link."); }
+  };
+  document.getElementById("hostClear").onclick = async () => {
+    const n = classRows.length; if (!n) return;
+    if (!confirm(`Permanently delete all ${n} run${n === 1 ? "" : "s"} from the class leaderboard? This can't be undone.`)) return;
+    try {
+      await hostReady;
+      const batch = fsdk.writeBatch(db);
+      classRows.forEach(r => batch.delete(fsdk.doc(db, "scores", r.id)));
+      await batch.commit();
+      hostSay(`Deleted ${n} run${n === 1 ? "" : "s"}. The leaderboard is empty.`);
+    } catch (e) { hostSay("Couldn't clear the leaderboard. Check the host link."); }
   };
   function onRelease() {
     if (S.screen === "final") render(false);
@@ -652,6 +685,9 @@ const FIREBASE_CONFIG = {
       await signInAnonymously(auth);
       uid = auth.currentUser.uid;
       db = fsdk.getFirestore(app);
+      // the host link registers this browser as a presenter, which lets it reveal, unreveal and clear
+      if (HOST_KEY) hostReady = fsdk.setDoc(fsdk.doc(db, "hosts", uid), { key: HOST_KEY, at: new Date().toISOString() })
+        .catch(e => { hostSay("This host link wasn't recognised, so the presenter controls won't work."); throw e; });
     } catch (e) { console.error(e); classState = "slow"; onClassChange(); return; }
     const timer = setTimeout(() => { if (classState === "loading") { classState = "slow"; onClassChange(); } }, 10000);
     fsdk.onSnapshot(fsdk.query(fsdk.collection(db, "scores"), fsdk.limit(500)), { includeMetadataChanges: false }, snap => {
